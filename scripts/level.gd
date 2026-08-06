@@ -17,6 +17,8 @@ class_name Level
 var _nodes: Dictionary = {}
 ## node id -> PackedInt32Array of neighbour ids (derived from edges)
 var _adjacency: Dictionary = {}
+## [{ edge: Edge, a: int, b: int }, …] — for highlighting the vision cross
+var _edges: Array = []
 
 var _player: Player
 var _guard: Guard
@@ -32,7 +34,7 @@ func _ready() -> void:
 	_spawn_player()
 	_spawn_guard()
 	# Show the guard's starting vision so the first move can be planned.
-	_highlight_vision(_guard_vision(_guard.current_node()))
+	_apply_vision(_guard.current_node())
 	_input_locked = false
 
 
@@ -61,6 +63,8 @@ func _build_nodes() -> void:
 		node.global_position = level_data.node_positions[i]
 		node.clicked.connect(_on_node_clicked)
 		_nodes[i] = node
+	if _nodes.has(level_data.target_node):
+		_nodes[level_data.target_node].set_role(NetworkNode.Role.TARGET)
 
 
 func _build_edges() -> void:
@@ -68,6 +72,7 @@ func _build_edges() -> void:
 		var edge: Edge = edge_scene.instantiate()
 		_edges_root.add_child(edge)
 		edge.span(level_data.node_positions[e.x], level_data.node_positions[e.y])
+		_edges.append({ "edge": edge, "a": e.x, "b": e.y })
 
 
 func _spawn_player() -> void:
@@ -93,9 +98,15 @@ func _guard_vision(guard_node: int) -> PackedInt32Array:
 	return vision
 
 
-func _highlight_vision(vision: PackedInt32Array) -> void:
+## Highlight the guard's vision this tick: the vision nodes red, and the edges of
+## the vision cross (those incident to the guard's node) hot.
+func _apply_vision(guard_node: int) -> void:
+	var vision := _guard_vision(guard_node)
 	for id in _nodes:
 		_nodes[id].set_highlight(id in vision)
+	for entry in _edges:
+		var incident: bool = entry.a == guard_node or entry.b == guard_node
+		entry.edge.set_highlight(incident)
 
 
 # --- Tick loop --------------------------------------------------------------
@@ -126,7 +137,7 @@ func _resolve_tick(target_id: int) -> void:
 
 	# 5: compute + highlight this tick's vision (never during tweens).
 	var vision := _guard_vision(_guard.current_node())
-	_highlight_vision(vision)
+	_apply_vision(_guard.current_node())
 
 	# 6: detection.
 	if GameState.player_node in vision:
