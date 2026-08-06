@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="LevelData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+node_positions = PackedVector3Array(-2, 0, 2, 0, 0, 2, 2, 0, 2, -2, 0, 0, 0, 0, 0, 2, 0, 0, -2, 0, -2, 0, 0, -2, 2, 0, -2)
+edges = [Vector2i(0, 1), Vector2i(1, 2), Vector2i(3, 4), Vector2i(4, 5), Vector2i(6, 7), Vector2i(7, 8), Vector2i(0, 3), Vector2i(3, 6), Vector2i(1, 4), Vector2i(4, 7), Vector2i(2, 5), Vector2i(5, 8)]
+player_start = 0
+target_node = 8
+guard_patrol = PackedInt32Array(4, 5, 4, 3)
+guard_start_index = 0
