@@ -7,8 +7,8 @@ class_name UI
 const RESTART_DELAY := 1.1
 const FADE_TIME := 0.35
 
-const C_DETECTED := Color(1, 0.3, 0.32)
-const C_COMPLETE := Color(0.4, 1, 0.6)
+const C_DETECTED := Color(0.85, 0.25, 0.28)
+const C_COMPLETE := Color(0.15, 0.62, 0.36)
 
 @onready var _backdrop: ColorRect = $Backdrop
 @onready var _message: CenterContainer = $MessageCenter
