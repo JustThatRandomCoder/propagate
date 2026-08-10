@@ -1,27 +1,25 @@
 extends Node3D
 class_name NetworkNode
-## One graph node, drawn as a stylized server rack (see `ServerRack`). This script
-## owns only the STATE → STRIP COLOR mapping and click detection; the rack itself
-## handles the geometry and idle animation. `Level` drives role (normal/target) and
-## the per-tick vision highlight; the violet "you are here" tint is read straight
+## One graph node, drawn as a clean coloured board piece (see `NodePiece`). This
+## script owns only the STATE → COLOUR mapping and click detection; the piece
+## handles geometry and the colour ease. `Level` drives role (normal/target) and
+## the per-tick vision highlight; the player "you are here" colour is read straight
 ## from `GameState.player_node` (read-only — the tick loop is never touched).
 
 signal clicked(id: int)
 
 enum Role { NORMAL, TARGET }
 
-## Centralized state palette: [color, base_energy, pulse_amp, pulse_speed].
-## The strip (and its light) is the only bright thing on the rack, so state reads
-## purely as a change of this one accent against the dark chassis.
-const S_NORMAL := { "color": Color(0.2, 0.5, 1.0), "energy": 1.7, "amp": 0.14, "speed": 1.4 }
-const S_TARGET := { "color": Color(0.15, 0.95, 0.6), "energy": 2.0, "amp": 0.3, "speed": 2.2 }
-const S_PLAYER := { "color": Color(0.486, 0.361, 1.0), "energy": 2.3, "amp": 0.35, "speed": 2.6 }
-const S_VISION := { "color": Color(1.0, 0.13, 0.1), "energy": 2.0, "amp": 0.5, "speed": 6.0 }
+## Centralized, flat light-mode palette. Priority: vision > player > target > neutral.
+const C_NORMAL := Color(0.63, 0.69, 0.79)
+const C_TARGET := Color(0.24, 0.72, 0.46)
+const C_PLAYER := Color(0.44, 0.38, 0.86)
+const C_VISION := Color(0.92, 0.36, 0.36)
 
 var id: int = -1
 var neighbors: PackedInt32Array = PackedInt32Array()
 
-@onready var _rack: ServerRack = $Rack
+@onready var _piece: NodePiece = $Piece
 @onready var _area: Area3D = $Area3D
 
 var _role: int = Role.NORMAL
@@ -52,24 +50,22 @@ func set_highlight(on: bool) -> void:
 
 
 func _apply_state() -> void:
-	if _rack == null:
+	if _piece == null:
 		return
-	# Priority: guard vision (danger) > player node (you) > target > neutral.
-	var s: Dictionary
+	var color: Color
 	if _highlighted:
-		s = S_VISION
+		color = C_VISION
 	elif _is_player:
-		s = S_PLAYER
+		color = C_PLAYER
 	elif _role == Role.TARGET:
-		s = S_TARGET
+		color = C_TARGET
 	else:
-		s = S_NORMAL
-	_rack.set_state(s.color, s.energy, s.amp, s.speed)
+		color = C_NORMAL
+	_piece.set_state(color)
 
 
 func _process(_delta: float) -> void:
-	# Reflect "player is standing here" as a state change only when it flips, so the
-	# rack's own animation isn't restarted every frame.
+	# Reflect "player is standing here" as a state change only when it flips.
 	var here := id == GameState.player_node
 	if here != _is_player:
 		_is_player = here

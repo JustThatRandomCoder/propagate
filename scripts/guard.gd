@@ -1,30 +1,25 @@
 extends Node3D
 class_name Guard
-## The patrolling security process, drawn as a taller server rack with a warm amber
-## status strip so it is unmistakable against the red scan it casts on nearby nodes.
-## `advance()` steps the fixed patrol route (wrapping) and returns the new node id;
-## `move_to` tweens the ROOT awaitably. The idle bob lives on the `Bob` child so it
-## never fights the movement tween. Vision is computed by `Level`, not here.
+## The patrolling security process, drawn as a taller rounded amber sentinel so it
+## is unmistakable against the square nodes and the red scan it casts. `advance()`
+## steps the fixed patrol route (wrapping) and returns the new node id; `move_to`
+## tweens the ROOT awaitably. The idle bob lives on the `Bob` child so it never
+## fights the movement tween. Vision is computed by `Level`, not here.
 
 const MOVE_TIME := 0.35
-const BOB_AMP := 0.04
-const BOB_SPEED := 1.6
-
-## Warm amber, animated a touch faster than the nodes to read as "actively scanning".
-const AMBER := Color(1.0, 0.62, 0.16)
+const BOB_AMP := 0.05
+const BOB_SPEED := 1.7
 
 var patrol_route: PackedInt32Array = PackedInt32Array()
 var _index: int = 0
 
 @onready var _bob: Node3D = $Bob
-@onready var _rack: ServerRack = $Bob/Rack
 
 var _base_y: float = 0.0
 
 
 func _ready() -> void:
 	_base_y = _bob.position.y
-	_rack.set_state(AMBER, 2.3, 0.5, 4.0)
 
 
 func _process(_delta: float) -> void:
