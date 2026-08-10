@@ -1,32 +1,35 @@
 extends Node3D
 class_name Guard
-## Marker that walks a fixed patrol route of node ids. `advance()` steps the route
-## index (wrapping) and returns the new node id; `move_to` tweens the ROOT awaitably.
-## Idle bob + the sweeping scanner ring live on the `Visual` child so they never
-## fight the movement tween. Vision is computed by `Level`, not here.
+## The patrolling security process, drawn as a taller server rack with a warm amber
+## status strip so it is unmistakable against the red scan it casts on nearby nodes.
+## `advance()` steps the fixed patrol route (wrapping) and returns the new node id;
+## `move_to` tweens the ROOT awaitably. The idle bob lives on the `Bob` child so it
+## never fights the movement tween. Vision is computed by `Level`, not here.
 
 const MOVE_TIME := 0.35
-const BOB_AMP := 0.05
+const BOB_AMP := 0.04
 const BOB_SPEED := 1.6
-const SCAN_SPIN := 3.4
+
+## Warm amber, animated a touch faster than the nodes to read as "actively scanning".
+const AMBER := Color(1.0, 0.62, 0.16)
 
 var patrol_route: PackedInt32Array = PackedInt32Array()
 var _index: int = 0
 
-@onready var _visual: Node3D = $Visual
-@onready var _scanner: Node3D = $Visual/Scanner
+@onready var _bob: Node3D = $Bob
+@onready var _rack: ServerRack = $Bob/Rack
 
 var _base_y: float = 0.0
 
 
 func _ready() -> void:
-	_base_y = _visual.position.y
+	_base_y = _bob.position.y
+	_rack.set_state(AMBER, 2.4, 0.5, 4.0)
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	var t := Time.get_ticks_msec() / 1000.0
-	_visual.position.y = _base_y + BOB_AMP * sin(t * BOB_SPEED)
-	_scanner.rotate_y(delta * SCAN_SPIN)
+	_bob.position.y = _base_y + BOB_AMP * sin(t * BOB_SPEED)
 
 
 func setup(route: PackedInt32Array, start_index: int) -> void:
