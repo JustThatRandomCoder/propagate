@@ -13,10 +13,10 @@ enum Role { NORMAL, TARGET }
 ## Centralized state palette: [color, base_energy, pulse_amp, pulse_speed].
 ## The strip (and its light) is the only bright thing on the rack, so state reads
 ## purely as a change of this one accent against the dark chassis.
-const S_NORMAL := { "color": Color(0.16, 0.45, 0.95), "energy": 1.4, "amp": 0.12, "speed": 1.4 }
-const S_TARGET := { "color": Color(0.15, 0.95, 0.6), "energy": 1.9, "amp": 0.3, "speed": 2.2 }
-const S_PLAYER := { "color": Color(0.486, 0.361, 1.0), "energy": 2.4, "amp": 0.35, "speed": 2.6 }
-const S_VISION := { "color": Color(1.0, 0.24, 0.2), "energy": 2.7, "amp": 0.6, "speed": 6.0 }
+const S_NORMAL := { "color": Color(0.2, 0.5, 1.0), "energy": 1.7, "amp": 0.14, "speed": 1.4 }
+const S_TARGET := { "color": Color(0.15, 0.95, 0.6), "energy": 2.0, "amp": 0.3, "speed": 2.2 }
+const S_PLAYER := { "color": Color(0.486, 0.361, 1.0), "energy": 2.3, "amp": 0.35, "speed": 2.6 }
+const S_VISION := { "color": Color(1.0, 0.13, 0.1), "energy": 2.0, "amp": 0.5, "speed": 6.0 }
 
 var id: int = -1
 var neighbors: PackedInt32Array = PackedInt32Array()

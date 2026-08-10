@@ -24,7 +24,7 @@ var _base_y: float = 0.0
 
 func _ready() -> void:
 	_base_y = _bob.position.y
-	_rack.set_state(AMBER, 2.4, 0.5, 4.0)
+	_rack.set_state(AMBER, 2.3, 0.5, 4.0)
 
 
 func _process(_delta: float) -> void:
