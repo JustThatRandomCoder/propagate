@@ -1,32 +1,32 @@
 extends Node3D
 class_name NetworkNode
-## One graph node: an emissive mesh + an Area3D for click detection + its data.
-## Emits `clicked(id)` when its Area3D is clicked. `Level` wires this up and drives
-## role (normal/target) and the per-tick vision highlight. Visuals only here.
+## One graph node, drawn as a stylized server rack (see `ServerRack`). This script
+## owns only the STATE → STRIP COLOR mapping and click detection; the rack itself
+## handles the geometry and idle animation. `Level` drives role (normal/target) and
+## the per-tick vision highlight; the violet "you are here" tint is read straight
+## from `GameState.player_node` (read-only — the tick loop is never touched).
 
 signal clicked(id: int)
 
 enum Role { NORMAL, TARGET }
 
-const C_NORMAL := Color(0.12, 0.62, 0.95)
-const C_TARGET := Color(0.22, 1.0, 0.55)
-const C_VISION := Color(1.0, 0.30, 0.24)
+## Centralized state palette: [color, base_energy, pulse_amp, pulse_speed].
+## The strip (and its light) is the only bright thing on the rack, so state reads
+## purely as a change of this one accent against the dark chassis.
+const S_NORMAL := { "color": Color(0.16, 0.45, 0.95), "energy": 1.4, "amp": 0.12, "speed": 1.4 }
+const S_TARGET := { "color": Color(0.15, 0.95, 0.6), "energy": 1.9, "amp": 0.3, "speed": 2.2 }
+const S_PLAYER := { "color": Color(0.486, 0.361, 1.0), "energy": 2.4, "amp": 0.35, "speed": 2.6 }
+const S_VISION := { "color": Color(1.0, 0.24, 0.2), "energy": 2.7, "amp": 0.6, "speed": 6.0 }
 
 var id: int = -1
 var neighbors: PackedInt32Array = PackedInt32Array()
 
-@onready var _mesh: MeshInstance3D = $Mesh
+@onready var _rack: ServerRack = $Rack
 @onready var _area: Area3D = $Area3D
 
 var _role: int = Role.NORMAL
 var _highlighted: bool = false
-var _material: StandardMaterial3D
-var _phase: float = 0.0
-# Pulse tuning per visual state: base energy, amplitude, speed, scale wobble.
-var _base_energy: float = 1.0
-var _amp: float = 0.25
-var _speed: float = 2.0
-var _scale_amp: float = 0.0
+var _is_player: bool = false
 
 
 func setup(node_id: int, neighbor_ids: PackedInt32Array) -> void:
@@ -40,14 +40,8 @@ func set_role(role: int) -> void:
 
 
 func _ready() -> void:
-	_phase = randf() * TAU
-	_material = StandardMaterial3D.new()
-	_material.metallic = 0.2
-	_material.roughness = 0.35
-	_material.emission_enabled = true
-	_mesh.material_override = _material
-	_apply_state()
 	_area.input_event.connect(_on_area_input_event)
+	_apply_state()
 
 
 func set_highlight(on: bool) -> void:
@@ -58,42 +52,28 @@ func set_highlight(on: bool) -> void:
 
 
 func _apply_state() -> void:
-	if _material == null:
+	if _rack == null:
 		return
-	var color: Color
+	# Priority: guard vision (danger) > player node (you) > target > neutral.
+	var s: Dictionary
 	if _highlighted:
-		color = C_VISION
-		_base_energy = 2.2
-		_amp = 0.9
-		_speed = 6.5
-		_scale_amp = 0.06
+		s = S_VISION
+	elif _is_player:
+		s = S_PLAYER
 	elif _role == Role.TARGET:
-		color = C_TARGET
-		_base_energy = 1.7
-		_amp = 0.55
-		_speed = 3.0
-		_scale_amp = 0.05
+		s = S_TARGET
 	else:
-		color = C_NORMAL
-		_base_energy = 1.0
-		_amp = 0.25
-		_speed = 2.0
-		_scale_amp = 0.0
-	_material.albedo_color = color.darkened(0.75)
-	_material.emission = color
+		s = S_NORMAL
+	_rack.set_state(s.color, s.energy, s.amp, s.speed)
 
 
 func _process(_delta: float) -> void:
-	if _material == null:
-		return
-	var t := Time.get_ticks_msec() / 1000.0
-	var wave := sin(t * _speed + _phase)
-	_material.emission_energy_multiplier = _base_energy + _amp * wave
-	if _scale_amp > 0.0:
-		var s := 1.0 + _scale_amp * wave
-		_mesh.scale = Vector3(s, s, s)
-	elif _mesh.scale != Vector3.ONE:
-		_mesh.scale = Vector3.ONE
+	# Reflect "player is standing here" as a state change only when it flips, so the
+	# rack's own animation isn't restarted every frame.
+	var here := id == GameState.player_node
+	if here != _is_player:
+		_is_player = here
+		_apply_state()
 
 
 func _on_area_input_event(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3, _shape: int) -> void:
