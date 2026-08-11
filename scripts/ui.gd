@@ -29,7 +29,7 @@ func _ready() -> void:
 
 
 func _update_hud(tick: int) -> void:
-	_hud.text = "TICK %02d" % tick
+	_hud.text = "LVL %d / %d   ·   TICK %02d" % [LevelManager.level_number(), LevelManager.total(), tick]
 
 
 func _on_player_spotted() -> void:
@@ -39,7 +39,13 @@ func _on_player_spotted() -> void:
 
 
 func _on_level_won() -> void:
-	_show("LEVEL COMPLETE", "Target node reached undetected", C_COMPLETE)
+	if LevelManager.has_next():
+		_show("LEVEL COMPLETE", "Advancing to the next cluster…", C_COMPLETE)
+		await get_tree().create_timer(RESTART_DELAY).timeout
+		LevelManager.advance()
+		get_tree().reload_current_scene()
+	else:
+		_show("ALL CLEAR", "Every cluster breached undetected", C_COMPLETE)
 
 
 func _show(title: String, subtitle: String, color: Color) -> void:
