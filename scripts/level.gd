@@ -26,6 +26,11 @@ var _input_locked: bool = true
 
 
 func _ready() -> void:
+	# Prefer the current level from the progression manager; the exported
+	# resource stays as a fallback for opening the scene directly in the editor.
+	var managed := LevelManager.current_level()
+	if managed != null:
+		level_data = managed
 	assert(level_data != null, "Level requires a LevelData resource.")
 	GameState.reset(level_data.player_start)
 	_build_adjacency()
