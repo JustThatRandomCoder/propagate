@@ -9,6 +9,8 @@ class_name Guard
 const MOVE_TIME := 0.35
 const BOB_AMP := 0.05
 const BOB_SPEED := 1.7
+const DROP_HEIGHT := 3.4
+const DROP_TIME := 0.55
 
 var patrol_route: PackedInt32Array = PackedInt32Array()
 var _index: int = 0
@@ -39,6 +41,17 @@ func current_node() -> int:
 
 func place_at(pos: Vector3) -> void:
 	global_position = pos
+
+
+## Drop the sentinel in from above with a gravity-like bounce, after an optional delay.
+func drop_in(delay: float = 0.0) -> void:
+	var base := position.y
+	position.y = base + DROP_HEIGHT
+	var tw := create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	tw.tween_property(self, "position:y", base, DROP_TIME) \
+		.set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 
 ## Step to the next route entry (wrapping) and return its node id.

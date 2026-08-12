@@ -38,6 +38,8 @@ func _ready() -> void:
 	_build_edges()
 	_spawn_player()
 	_spawn_guard()
+	# Cosmetic gravity drop-in; input stays locked until everything settles.
+	await _drop_in_all()
 	# Show the guard's starting vision so the first move can be planned.
 	_apply_vision(_guard.current_node())
 	_input_locked = false
@@ -91,6 +93,24 @@ func _spawn_guard() -> void:
 	add_child(_guard)
 	_guard.setup(level_data.guard_patrol, level_data.guard_start_index)
 	_guard.place_at(level_data.node_positions[_guard.current_node()])
+
+
+# --- Intro ------------------------------------------------------------------
+
+const DROP_STAGGER := 0.03
+
+## Drop every tile in with a staggered gravity bounce, then the actors, and wait
+## for the last one to settle. Cosmetic only — nothing here touches run state.
+func _drop_in_all() -> void:
+	var count := _nodes.size()
+	var i := 0
+	for id in _nodes:
+		_nodes[id].drop_in(i * DROP_STAGGER)
+		i += 1
+	_player.drop_in(count * DROP_STAGGER)
+	_guard.drop_in(count * DROP_STAGGER + DROP_STAGGER)
+	var total := count * DROP_STAGGER + NodePiece.DROP_TIME + 0.15
+	await get_tree().create_timer(total).timeout
 
 
 # --- Vision -----------------------------------------------------------------
