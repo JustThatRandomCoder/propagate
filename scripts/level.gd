@@ -36,6 +36,7 @@ func _ready() -> void:
 	# Physics flourish when caught (game-over only, so non-determinism is safe).
 	GameState.player_spotted.connect(_on_player_spotted)
 	_build_adjacency()
+	_build_floor()
 	_build_nodes()
 	_build_edges()
 	_spawn_player()
@@ -45,6 +46,61 @@ func _ready() -> void:
 	# Show the guard's starting vision so the first move can be planned.
 	_apply_vision(_guard.current_node())
 	_input_locked = false
+
+
+# --- Floor (Godot GridMap of tiles) -----------------------------------------
+
+const CELL := 1.5
+const TILE_LIGHT := Color(0.9, 0.93, 0.97)
+const TILE_DARK := Color(0.76, 0.8, 0.86)
+
+## Lay a checkerboard floor with a GridMap (Godot's 3D tile node). Node positions
+## sit on a CELL-unit grid, so tiles align under them; we cover the board's cell
+## bounds plus a one-cell margin. Purely visual.
+func _build_floor() -> void:
+	var gm := GridMap.new()
+	gm.cell_size = Vector3(CELL, 0.5, CELL)
+	gm.cell_center_x = false
+	gm.cell_center_y = false
+	gm.cell_center_z = false
+	gm.mesh_library = _make_tile_library()
+	add_child(gm)
+	gm.position.y = -0.04
+
+	var min_c := 1 << 30
+	var max_c := -(1 << 30)
+	var min_r := 1 << 30
+	var max_r := -(1 << 30)
+	for pos in level_data.node_positions:
+		var c := roundi(pos.x / CELL)
+		var r := roundi(pos.z / CELL)
+		min_c = mini(min_c, c)
+		max_c = maxi(max_c, c)
+		min_r = mini(min_r, r)
+		max_r = maxi(max_r, r)
+	for r in range(min_r - 1, max_r + 2):
+		for c in range(min_c - 1, max_c + 2):
+			gm.set_cell_item(Vector3i(c, 0, r), (c + r) & 1)
+
+
+func _make_tile_library() -> MeshLibrary:
+	var lib := MeshLibrary.new()
+	lib.create_item(0)
+	lib.set_item_mesh(0, _tile_mesh(TILE_LIGHT))
+	lib.create_item(1)
+	lib.set_item_mesh(1, _tile_mesh(TILE_DARK))
+	return lib
+
+
+func _tile_mesh(color: Color) -> Mesh:
+	var m := BoxMesh.new()
+	m.size = Vector3(CELL - 0.08, 0.08, CELL - 0.08)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.metallic = 0.0
+	mat.roughness = 0.9
+	m.material = mat
+	return m
 
 
 # --- Graph construction -----------------------------------------------------

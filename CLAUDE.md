@@ -50,9 +50,10 @@ Level (Node3D)       (main scene — level.gd — owns the tick loop)
   and no graph data; it only tracks state and fires signals.
 
 - **`Level`** (`scripts/level.gd`): loads a `LevelData`, builds the graph (nodes + edges),
-  spawns Player and Guard, and **orchestrates the entire tick loop from the top**. It is
-  the only place the tick resolution order lives. Owns the adjacency map derived from the
-  level's edges and the highlight logic.
+  lays a checkerboard floor with a `GridMap` (Godot's 3D tile node, built from a runtime
+  `MeshLibrary` and aligned to the node grid), spawns Player and Guard, and **orchestrates
+  the entire tick loop from the top**. It is the only place the tick resolution order lives.
+  Owns the adjacency map derived from the level's edges and the highlight logic.
 
 - **`NetworkNode`** (`scripts/graph/network_node.gd`, `scenes/graph/network_node.tscn`): one graph
   node — an `Area3D` for click detection + its data (`id`, world position, neighbor ids)
