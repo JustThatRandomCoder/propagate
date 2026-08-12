@@ -37,6 +37,20 @@ func set_role(role: int) -> void:
 	_apply_state()
 
 
+## Cosmetic drop-in of the tile, forwarded to the piece.
+func drop_in(delay: float = 0.0) -> void:
+	_piece.drop_in(delay)
+
+
+func get_color() -> Color:
+	return _piece.get_color()
+
+
+## Hide this node's block so Level can replace it with physics debris.
+func pop_off() -> void:
+	_piece.pop_off()
+
+
 func _ready() -> void:
 	_area.input_event.connect(_on_area_input_event)
 	_apply_state()

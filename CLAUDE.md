@@ -19,6 +19,11 @@ of that sequence is a **tick**.
 - Levels are **fully data-driven** via the `LevelData` resource. A new level is a new
   `.tres` file with **zero code changes**. This is the core architectural requirement —
   never hardcode graph geometry, guard routes, start, or target in a script.
+- **Physics is cosmetic only.** Gameplay stays strictly discrete/tick-based. Real
+  `RigidBody3D` physics is allowed for flourish — the gravity **drop-in** on level load
+  and the **topple** on detection — but it must never feed back into run state, detection,
+  or the node positions the tick loop uses. Inter-node movement is a deterministic,
+  awaitable arc-hop tween that always lands exactly on the target node.
 
 ---
 
@@ -45,14 +50,17 @@ Level (Node3D)       (main scene — level.gd — owns the tick loop)
   and no graph data; it only tracks state and fires signals.
 
 - **`Level`** (`scripts/level.gd`): loads a `LevelData`, builds the graph (nodes + edges),
-  spawns Player and Guard, and **orchestrates the entire tick loop from the top**. It is
-  the only place the tick resolution order lives. Owns the adjacency map derived from the
-  level's edges and the highlight logic.
+  lays a checkerboard floor with a `GridMap` (Godot's 3D tile node, built from a runtime
+  `MeshLibrary` and aligned to the node grid), spawns Player and Guard, and **orchestrates
+  the entire tick loop from the top**. It is the only place the tick resolution order lives.
+  Owns the adjacency map derived from the level's edges and the highlight logic.
 
 - **`NetworkNode`** (`scripts/graph/network_node.gd`, `scenes/graph/network_node.tscn`): one graph
-  node — a mesh + an `Area3D` for click detection + its data (`id`, world position,
-  neighbor ids). Emits `clicked(id)` when its Area3D is clicked. Exposes
-  `set_highlight(on)` to toggle the red vision tint.
+  node — an `Area3D` for click detection + its data (`id`, world position, neighbor ids)
+  wrapping a `NodePiece` (`scripts/graph/node_piece.gd`), the visual: a square board **tile**
+  with a state-coloured block. Emits `clicked(id)` when its Area3D is clicked. Exposes
+  `set_highlight(on)` (red vision tint), `drop_in(delay)` (cosmetic gravity settle), and
+  `pop_off()` (hide the block so Level can spawn physics debris on detection).
 
 - **`Edge`** (`scripts/graph/edge.gd`, `scenes/graph/edge.tscn`): a thin box stretched/oriented
   between two node positions. **Purely visual**, no logic.

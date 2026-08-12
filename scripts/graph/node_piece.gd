@@ -6,6 +6,8 @@ class_name NodePiece
 ## eases smoothly on change so state transitions feel intentional, not flat.
 
 const TWEEN_TIME := 0.22
+const DROP_HEIGHT := 3.0
+const DROP_TIME := 0.55
 
 @onready var _block: MeshInstance3D = $Block
 @onready var _cap: MeshInstance3D = $Cap
@@ -30,12 +32,33 @@ func _ready() -> void:
 	_apply(_color, true)
 
 
+## Drop the tile in from above with a gravity-like bounce, after an optional
+## stagger delay. Purely cosmetic — the final resting position is always y=0.
+func drop_in(delay: float = 0.0) -> void:
+	position.y = DROP_HEIGHT
+	var tw := create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	tw.tween_property(self, "position:y", 0.0, DROP_TIME) \
+		.set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+
+
 ## Set the piece colour. Eases to the new colour unless `instant`.
 func set_state(color: Color) -> void:
 	if color == _color:
 		return
 	_color = color
 	_apply(color, false)
+
+
+func get_color() -> Color:
+	return _color
+
+
+## Hide the block + cap (its physics debris is spawned by Level on detection).
+func pop_off() -> void:
+	_block.visible = false
+	_cap.visible = false
 
 
 func _apply(color: Color, instant: bool) -> void:
