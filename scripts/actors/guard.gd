@@ -11,6 +11,7 @@ const BOB_AMP := 0.05
 const BOB_SPEED := 1.7
 const DROP_HEIGHT := 3.4
 const DROP_TIME := 0.55
+const HOP_HEIGHT := 0.5
 
 var patrol_route: PackedInt32Array = PackedInt32Array()
 var _index: int = 0
@@ -60,9 +61,23 @@ func advance() -> int:
 	return current_node()
 
 
-## Tween to `pos`; returns after the tween finishes so callers can `await` it.
+## Hop to `pos` in an arc with a squash-and-stretch; awaitable. The arc/squash is
+## visual only — the root always lands exactly on `pos`, so callers stay deterministic.
 func move_to(pos: Vector3) -> void:
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(self, "global_position", pos, MOVE_TIME)
-	await tween.finished
+	var mid := (global_position + pos) * 0.5
+	mid.y += HOP_HEIGHT
+	var move := create_tween()
+	move.tween_property(self, "global_position", mid, MOVE_TIME * 0.45) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	move.tween_property(self, "global_position", pos, MOVE_TIME * 0.55) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_hop_squash()
+	await move.finished
+
+
+func _hop_squash() -> void:
+	var s := create_tween()
+	s.tween_property(_bob, "scale", Vector3(0.85, 1.2, 0.85), MOVE_TIME * 0.2)
+	s.tween_property(_bob, "scale", Vector3.ONE, MOVE_TIME * 0.3)
+	s.tween_property(_bob, "scale", Vector3(1.2, 0.8, 1.2), MOVE_TIME * 0.3)
+	s.tween_property(_bob, "scale", Vector3.ONE, MOVE_TIME * 0.2)
