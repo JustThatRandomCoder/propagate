@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://scripts/network_node.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/node_piece.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/graph/network_node.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/graph/node_piece.tscn" id="2"]
 
 [sub_resource type="BoxShape3D" id="ClickBox_1"]
 size = Vector3(0.7, 0.6, 0.7)

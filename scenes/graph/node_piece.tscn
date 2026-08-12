@@ -1,6 +1,6 @@
 [gd_scene load_steps=6 format=3]
 
-[ext_resource type="Script" path="res://scripts/node_piece.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/graph/node_piece.gd" id="1"]
 
 [sub_resource type="CylinderMesh" id="PadMesh"]
 top_radius = 0.5
