@@ -33,6 +33,8 @@ func _ready() -> void:
 		level_data = managed
 	assert(level_data != null, "Level requires a LevelData resource.")
 	GameState.reset(level_data.player_start)
+	# Physics flourish when caught (game-over only, so non-determinism is safe).
+	GameState.player_spotted.connect(_on_player_spotted)
 	_build_adjacency()
 	_build_nodes()
 	_build_edges()
@@ -132,6 +134,52 @@ func _apply_vision(guard_node: int) -> void:
 	for entry in _edges:
 		var incident: bool = entry.a == guard_node or entry.b == guard_node
 		entry.edge.set_highlight(incident)
+
+
+# --- Detection flourish (physics) -------------------------------------------
+
+const PLAYER_COLOR := Color(0.44, 0.38, 0.86)
+
+## When caught, replace the player token and its node's block with RigidBody debris
+## and kick them so they topple. Runs on game-over only (the scene reloads shortly
+## after), so this real physics never touches the deterministic tick state.
+func _on_player_spotted() -> void:
+	var node_id: int = GameState.player_node
+	if _nodes.has(node_id):
+		var node: NetworkNode = _nodes[node_id]
+		var box := BoxMesh.new()
+		box.size = Vector3(0.58, 0.46, 0.58)
+		var box_shape := BoxShape3D.new()
+		box_shape.size = box.size
+		_spawn_debris(box, box_shape, node.global_position + Vector3(0, 0.36, 0), node.get_color())
+		node.pop_off()
+
+	var ball := SphereMesh.new()
+	ball.radius = 0.2
+	ball.height = 0.4
+	var ball_shape := SphereShape3D.new()
+	ball_shape.radius = 0.2
+	_spawn_debris(ball, ball_shape, _player.global_position + Vector3(0, 0.85, 0), PLAYER_COLOR)
+	_player.hide()
+
+
+func _spawn_debris(mesh: Mesh, shape: Shape3D, at: Vector3, color: Color) -> void:
+	var body := RigidBody3D.new()
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.metallic = 0.0
+	mat.roughness = 0.5
+	mi.material_override = mat
+	body.add_child(mi)
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	body.add_child(col)
+	add_child(body)
+	body.global_position = at
+	body.apply_central_impulse(Vector3(randf_range(-1.6, 1.6), randf_range(3.2, 5.0), randf_range(-1.6, 1.6)))
+	body.angular_velocity = Vector3(randf_range(-9.0, 9.0), randf_range(-9.0, 9.0), randf_range(-9.0, 9.0))
 
 
 # --- Tick loop --------------------------------------------------------------

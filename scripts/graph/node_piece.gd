@@ -51,6 +51,16 @@ func set_state(color: Color) -> void:
 	_apply(color, false)
 
 
+func get_color() -> Color:
+	return _color
+
+
+## Hide the block + cap (its physics debris is spawned by Level on detection).
+func pop_off() -> void:
+	_block.visible = false
+	_cap.visible = false
+
+
 func _apply(color: Color, instant: bool) -> void:
 	if _block_mat == null:
 		return
