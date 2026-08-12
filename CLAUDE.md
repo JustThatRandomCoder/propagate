@@ -39,7 +39,7 @@ Level (Node3D)       (main scene — level.gd — owns the tick loop)
 
 ### Responsibilities
 
-- **`GameState`** (`scripts/game_state.gd`, autoload): the single source of truth for
+- **`GameState`** (`scripts/autoload/game_state.gd`, autoload): the single source of truth for
   run state — `player_node` (current node id), `tick` (counter), `game_over`, `won`.
   Emits `player_spotted`, `level_won`, `tick_advanced(tick)`. Holds no scene references
   and no graph data; it only tracks state and fires signals.
@@ -49,23 +49,23 @@ Level (Node3D)       (main scene — level.gd — owns the tick loop)
   the only place the tick resolution order lives. Owns the adjacency map derived from the
   level's edges and the highlight logic.
 
-- **`NetworkNode`** (`scripts/network_node.gd`, `scenes/network_node.tscn`): one graph
+- **`NetworkNode`** (`scripts/graph/network_node.gd`, `scenes/graph/network_node.tscn`): one graph
   node — a mesh + an `Area3D` for click detection + its data (`id`, world position,
   neighbor ids). Emits `clicked(id)` when its Area3D is clicked. Exposes
   `set_highlight(on)` to toggle the red vision tint.
 
-- **`Edge`** (`scripts/edge.gd`, `scenes/edge.tscn`): a thin box stretched/oriented
+- **`Edge`** (`scripts/graph/edge.gd`, `scenes/graph/edge.tscn`): a thin box stretched/oriented
   between two node positions. **Purely visual**, no logic.
 
-- **`Player`** (`scripts/player.gd`, `scenes/player.tscn`): a marker mesh on the current
+- **`Player`** (`scripts/actors/player.gd`, `scenes/actors/player.tscn`): a marker mesh on the current
   node. `move_to(pos)` tweens it and can be `await`ed (returns after the tween finishes).
 
-- **`Guard`** (`scripts/guard.gd`, `scenes/guard.tscn`): a marker mesh with a
+- **`Guard`** (`scripts/actors/guard.gd`, `scenes/actors/guard.tscn`): a marker mesh with a
   `patrol_route` (array of node ids) + current index. `advance()` steps the index
   (wrapping) and returns the new node id. `move_to(pos)` tweens and is awaitable.
   Vision is computed by `Level`, not the guard, because it needs the graph adjacency.
 
-- **`UI`** (`scripts/ui.gd`, `scenes/ui.tscn` — embedded in Level): a `CanvasLayer` with
+- **`UI`** (`scripts/ui/ui.gd`, embedded in `level.tscn` as a `CanvasLayer` — no separate scene): a `CanvasLayer` with
   a "Detected — restarting" label and a "Level Complete" label. Restart reloads the
   current scene.
 
@@ -92,7 +92,7 @@ Implemented in `Level`. This order is the most fragile part of the game; keep it
 
 ## `LevelData` resource
 
-`scripts/level_data.gd` (`class_name LevelData extends Resource`). Fields:
+`scripts/data/level_data.gd` (`class_name LevelData extends Resource`). Fields:
 
 | Field                | Type                | Meaning                                        |
 |----------------------|---------------------|------------------------------------------------|
@@ -109,7 +109,7 @@ it is not stored. Guard vision uses that same adjacency.
 ### Authoring a new level
 
 1. Create a new `.tres` in `levels/` with `[gd_resource type="Resource" script_class="LevelData"]`
-   referencing `res://scripts/level_data.gd`.
+   referencing `res://scripts/data/level_data.gd`.
 2. Fill `node_positions` (one `Vector3` per node, index-ordered), `edges`, `player_start`,
    `target_node`, `guard_patrol`, `guard_start_index`.
 3. Point `Level`'s `@export var level_data` at the new resource (in the inspector on
@@ -146,7 +146,10 @@ each tick; a path through the center gets caught.
 ## Conventions
 
 - One script per node type in `scripts/`, one scene per reusable piece in `scenes/`,
-  levels in `levels/`.
+  levels in `levels/`. Both trees are grouped into matching domain subfolders:
+  `autoload/`, `actors/` (player, guard), `graph/` (network_node, node_piece, edge),
+  `ui/`, and `data/` (level_data); the main `level.gd`/`level.tscn` stay at the root
+  of their tree.
 - `Level` is the only orchestrator. `GameState` holds state + signals only. Visual nodes
   (`NetworkNode`, `Edge`, `Player`, `Guard`) know nothing about the tick loop; they expose
   small imperative methods (`move_to`, `set_highlight`, `advance`) and signals.

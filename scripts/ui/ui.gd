@@ -7,8 +7,8 @@ class_name UI
 const RESTART_DELAY := 1.1
 const FADE_TIME := 0.35
 
-const C_DETECTED := Color(1, 0.3, 0.32)
-const C_COMPLETE := Color(0.4, 1, 0.6)
+const C_DETECTED := Color(0.85, 0.25, 0.28)
+const C_COMPLETE := Color(0.15, 0.62, 0.36)
 
 @onready var _backdrop: ColorRect = $Backdrop
 @onready var _message: CenterContainer = $MessageCenter
@@ -29,7 +29,7 @@ func _ready() -> void:
 
 
 func _update_hud(tick: int) -> void:
-	_hud.text = "TICK %02d" % tick
+	_hud.text = "LVL %d / %d   ·   TICK %02d" % [LevelManager.level_number(), LevelManager.total(), tick]
 
 
 func _on_player_spotted() -> void:
@@ -39,7 +39,13 @@ func _on_player_spotted() -> void:
 
 
 func _on_level_won() -> void:
-	_show("LEVEL COMPLETE", "Target node reached undetected", C_COMPLETE)
+	if LevelManager.has_next():
+		_show("LEVEL COMPLETE", "Advancing to the next cluster…", C_COMPLETE)
+		await get_tree().create_timer(RESTART_DELAY).timeout
+		LevelManager.advance()
+		get_tree().reload_current_scene()
+	else:
+		_show("ALL CLEAR", "Every cluster breached undetected", C_COMPLETE)
 
 
 func _show(title: String, subtitle: String, color: Color) -> void:
