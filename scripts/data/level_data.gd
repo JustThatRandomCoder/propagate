@@ -23,3 +23,20 @@ extends Resource
 
 ## Starting index into `guard_patrol`.
 @export var guard_start_index: int = 0
+
+## Extra guards beyond the first: one patrol route each. Empty = single guard.
+@export var extra_guard_patrols: Array[PackedInt32Array] = []
+
+## Starting index into each corresponding entry of `extra_guard_patrols`.
+@export var extra_guard_start_indices: PackedInt32Array = PackedInt32Array()
+
+
+## Every guard as [patrol, start_index] pairs — the first guard plus any extras.
+func all_guards() -> Array:
+	var guards: Array = [[guard_patrol, guard_start_index]]
+	for i in extra_guard_patrols.size():
+		var start := 0
+		if i < extra_guard_start_indices.size():
+			start = extra_guard_start_indices[i]
+		guards.append([extra_guard_patrols[i], start])
+	return guards

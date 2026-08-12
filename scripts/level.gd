@@ -21,7 +21,7 @@ var _adjacency: Dictionary = {}
 var _edges: Array = []
 
 var _player: Player
-var _guard: Guard
+var _guards: Array[Guard] = []
 var _input_locked: bool = true
 
 
@@ -40,11 +40,11 @@ func _ready() -> void:
 	_build_nodes()
 	_build_edges()
 	_spawn_player()
-	_spawn_guard()
+	_spawn_guards()
 	# Cosmetic gravity drop-in; input stays locked until everything settles.
 	await _drop_in_all()
-	# Show the guard's starting vision so the first move can be planned.
-	_apply_vision(_guard.current_node())
+	# Show the guards' starting vision so the first move can be planned.
+	_apply_vision()
 	_input_locked = false
 
 
@@ -146,11 +146,13 @@ func _spawn_player() -> void:
 	_player.place_at(level_data.node_positions[level_data.player_start])
 
 
-func _spawn_guard() -> void:
-	_guard = guard_scene.instantiate()
-	add_child(_guard)
-	_guard.setup(level_data.guard_patrol, level_data.guard_start_index)
-	_guard.place_at(level_data.node_positions[_guard.current_node()])
+func _spawn_guards() -> void:
+	for pair in level_data.all_guards():
+		var guard: Guard = guard_scene.instantiate()
+		add_child(guard)
+		guard.setup(pair[0], pair[1])
+		guard.place_at(level_data.node_positions[guard.current_node()])
+		_guards.append(guard)
 
 
 # --- Intro ------------------------------------------------------------------
@@ -166,30 +168,42 @@ func _drop_in_all() -> void:
 		_nodes[id].drop_in(i * DROP_STAGGER)
 		i += 1
 	_player.drop_in(count * DROP_STAGGER)
-	_guard.drop_in(count * DROP_STAGGER + DROP_STAGGER)
+	var gi := 1
+	for guard in _guards:
+		guard.drop_in(count * DROP_STAGGER + gi * DROP_STAGGER)
+		gi += 1
 	var total := count * DROP_STAGGER + NodePiece.DROP_TIME + 0.15
 	await get_tree().create_timer(total).timeout
 
 
 # --- Vision -----------------------------------------------------------------
 
-## Guard vision = its current node + all nodes directly connected to it by an edge.
-func _guard_vision(guard_node: int) -> PackedInt32Array:
-	var vision := PackedInt32Array([guard_node])
-	for n in _adjacency[guard_node]:
-		vision.append(n)
+## Combined vision = the union over every guard of (its node + adjacent nodes).
+func _combined_vision() -> Dictionary:
+	var vision: Dictionary = {}
+	for guard in _guards:
+		var gn: int = guard.current_node()
+		vision[gn] = true
+		for n in _adjacency[gn]:
+			vision[n] = true
 	return vision
 
 
-## Highlight the guard's vision this tick: the vision nodes red, and the edges of
-## the vision cross (those incident to the guard's node) hot.
-func _apply_vision(guard_node: int) -> void:
-	var vision := _guard_vision(guard_node)
+func _guard_on(node_id: int) -> bool:
+	for guard in _guards:
+		if guard.current_node() == node_id:
+			return true
+	return false
+
+
+## Highlight this tick's combined vision: vision nodes red, and edges incident to
+## any guard's node hot.
+func _apply_vision() -> void:
+	var vision := _combined_vision()
 	for id in _nodes:
-		_nodes[id].set_highlight(id in vision)
+		_nodes[id].set_highlight(vision.has(id))
 	for entry in _edges:
-		var incident: bool = entry.a == guard_node or entry.b == guard_node
-		entry.edge.set_highlight(incident)
+		entry.edge.set_highlight(_guard_on(entry.a) or _guard_on(entry.b))
 
 
 # --- Detection flourish (physics) -------------------------------------------
@@ -260,16 +274,18 @@ func _resolve_tick(target_id: int) -> void:
 	GameState.player_node = target_id
 	GameState.advance_tick()
 
-	# 3 & 4: guard advances along its route and tweens there.
-	var guard_target := _guard.advance()
-	await _guard.move_to(level_data.node_positions[guard_target])
+	# 3 & 4: every guard advances along its route and tweens there in parallel.
+	for guard in _guards:
+		var guard_target := guard.advance()
+		guard.move_to(level_data.node_positions[guard_target])  # fire in parallel
+	await get_tree().create_timer(Guard.MOVE_TIME + 0.02).timeout
 
-	# 5: compute + highlight this tick's vision (never during tweens).
-	var vision := _guard_vision(_guard.current_node())
-	_apply_vision(_guard.current_node())
+	# 5: compute + highlight this tick's combined vision (never during tweens).
+	var vision := _combined_vision()
+	_apply_vision()
 
 	# 6: detection.
-	if GameState.player_node in vision:
+	if vision.has(GameState.player_node):
 		GameState.spot_player()
 		return
 
