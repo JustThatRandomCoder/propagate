@@ -29,7 +29,8 @@ func _ready() -> void:
 
 
 func _update_hud(tick: int) -> void:
-	_hud.text = "LVL %d / %d   ·   TICK %02d" % [LevelManager.level_number(), LevelManager.total(), tick]
+	var tag := "  ✦" if LevelManager.is_procedural() else ""
+	_hud.text = "LVL %d%s   ·   TICK %02d" % [LevelManager.level_number(), tag, tick]
 
 
 func _on_player_spotted() -> void:
