@@ -108,11 +108,28 @@ Implemented in `Level`. This order is the most fragile part of the game; keep it
 | `edges`              | `Array[Vector2i]`   | Undirected edges as `(a, b)` node-id pairs     |
 | `player_start`       | `int`               | Node id the player starts on                   |
 | `target_node`        | `int`               | Node id that wins the level                    |
-| `guard_patrol`       | `PackedInt32Array`  | Guard's patrol route as an ordered node-id list (cycles) |
+| `guard_patrol`       | `PackedInt32Array`  | First guard's patrol route as an ordered node-id list (cycles) |
 | `guard_start_index`  | `int`               | Starting index into `guard_patrol`             |
+| `extra_guard_patrols`| `Array[PackedInt32Array]` | Additional guards, one patrol each. Empty = single guard |
+| `extra_guard_start_indices` | `PackedInt32Array` | Starting index into each entry of `extra_guard_patrols` |
 
 Adjacency (neighbor ids per node) is **derived at runtime** from `edges` by `Level` —
-it is not stored. Guard vision uses that same adjacency.
+it is not stored. **Multiple guards:** each tick every guard advances and tweens in
+parallel; the tick's vision is the **union** over all guards of (node + adjacent nodes),
+and detection tests that union. `LevelData.all_guards()` returns every guard as
+`[patrol, start_index]` pairs.
+
+### Levels & progression
+
+- **Authored intro** — the `levels/level_*.tres` files, played first (single guard).
+- **Endless generated levels** — after the intro, `LevelManager` hands out procedurally
+  generated boards of rising difficulty (bigger grids, up to 4 guards) via
+  `scripts/data/level_generator.gd`. A per-run seed randomises each playthrough; a given
+  level index is deterministic within the run (a retry reloads the same board).
+- **`scripts/data/level_solver.gd`** verifies any level under the exact tick rules (BFS
+  over player + guard indices, union vision, detection before win). The generator only
+  ships boards it proves solvable **and** non-trivial (`guards_matter`). If you author or
+  generate a level, it must pass `LevelSolver.is_solvable`.
 
 ### Authoring a new level
 
